@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 import math_fun as mf
+import random
+
 
 def shrink(img, times):
     H, W = img.shape
@@ -140,13 +142,79 @@ def ran_hough(img):
     #第三步  中心以及三个点待入椭圆方程，a(x − p)2 + 2b(x − p)(y − q) + c(y − q)2 + 1 = 0 中，（解得椭圆）
     #第四步  用一个列表保存此椭圆参数，再次进行第二步，得到新椭圆与就椭圆（比较），
     #        若相似度差太多，则把新椭圆加入数组中，若差不多，则取两椭圆平均，并把相应权值加1
-    #第五步 当权值有高于一定值的时候得出此椭圆，若小到不合实际则从图中和数组中（删除），其他返回此椭圆信息
+    #第五步 
+    all_points = get_points(img)
+    num_p = all_points.shape[0]
+    print(num_p)
+
+    p1 = all_points[random.randint(0， num_p-1)]       #获取三个随机点
+    p2 = all_points[random.randint(0， num_p-1)]
+    p3 = all_points[random.randint(0， num_p-1)]
+    
+    m_p1p2 = mf.mid_point(p1, p2)                     #计算三点的中点
+    m_p2p3 = mf.mid_point(p2, p3)
+    m_p1p3 = mf.mid_point(p1, p3)
+
+    img_around_p1 = get_area_around(img, p1, 5)          #获取三点附近区域
+    img_around_p2 = get_area_around(img, p1, 5)
+    img_around_p3 = get_area_around(img, p1, 5)
+
+    p_around_p1 = get_points(img_around_p1)               #获取三点附近区域的点
+    p_around_p2 = get_points(img_around_p2)
+    p_around_p3 = get_points(img_around_p3)
+
+    line_k1 ,line_b1 = mf.OLS(p_around_p1)                #分别用三点附近区域的点回归出三条直线的参数
+    line_k2 ,line_b2 = mf.OLS(p_around_p2)
+    line_k3 ,line_b3 = mf.OLS(p_around_p3)
+    
+    cline_1 = mf.Line(line_k1,line_b1)                  #用参数获得三条切线直线
+    cline_2 = mf.Line(line_k2,line_b2)
+    cline_3 = mf.Line(line_k3,line_b3)
+
+    cross_p1p2 = cline_1.cross_point(cline_2)            #获得三条直线相交的两个交点
+    cross_p2p3 = cline_2.cross_point(cline_3)
+
+    mline_1 = mf.Line(p1=(c))
+
+
+    cline_p1 = mf.Line(p1=m_p1p2, p2=cross_p1p2)
+    cline_p2 = mf.Line(p1=m_p2p3, p2=cross_p2p3)
+
     pass
 
 
 def get_points(img):                #得到二值图里不为零的点
+    H, W = img.shape
+    p_list = []
+    for i in range(H):
+        for j in range(W):
+            if img[i][j] != 0:
+                p_list.append([i,j])
+    return np.array(p_list)
+
+def get_area_around(img, point, size):   #得到图像中某点周围的一部分
+    H, W = img.shape
+
+    if point[1] - size < 0:
+        left = 0
+    else:
+        left = point[1] - size
+    if point[1] + size > W:
+        right = W-1
+    else:
+        right = point[1] + size
+
+    if point[0] - size < 0:
+        up = 0
+    else:
+        up = point[0] - size
+    if point[1] + size > H:
+        down = H-1
+    else:
+        down = point[0] + size
     
-    pass
+    print(up,down,left,right)
+    return img[up:down,left:right]
 
 
 
@@ -185,6 +253,8 @@ zhifang(img1)
 show(img1,"imgzhifan")
 
 
+
+
 #graychance(img1,(1.1,-10))
 #show(img1,"imggray")
 
@@ -200,11 +270,6 @@ show(img1,"imgzhifan")
 # threshold_two(img4, 40)
 # show(img4, "imgthreshold")
 
-line1 = mf.Line(p1=(1,6),p2=(2,8))
-line2 = mf.Line(7, 3)
-
-c_p = line1.cross_point(line2)
-print(c_p)
 
 cv2.destroyAllWindows()
 

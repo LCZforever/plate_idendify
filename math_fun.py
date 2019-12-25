@@ -3,8 +3,8 @@ import random
 
 
 class Line():
-    def __init__(self, k=0, b=0, p1=(0, 0), p2=(0, 0)):
-        if p1==(0, 0) and p2==(0, 0):
+    def __init__(self, k=0, b=0, p1=[0, 0], p2=[0, 0]):
+        if p1==[0, 0] and p2==[0, 0]:
             self.k = k
             self.b = b
         elif p2[0] - p1[0] != 0:
@@ -39,7 +39,7 @@ def OLS(point_list):
     a = sum_Dxy/sum_Dx
     b = aver_y - a*aver_x
 
-    return a,b
+    return [a,b]
 
 
 def mid_point(p1, p2):
