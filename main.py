@@ -145,6 +145,7 @@ def ran_hough(img):
 
 
 def get_points(img):                #得到二值图里不为零的点
+    
     pass
 
 
