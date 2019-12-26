@@ -324,9 +324,8 @@ clean_along_points(img4, 8)
 show(img4, "image_clean")
 #img4[:,317:321] = 0
 
-
-
 oval1 = ran_hough(img4, 8)
+
 oval1.print_fomula()
 print(oval1.angle,oval1.lone_axis,oval1.short_axis)
 print(oval1.check_point([67,143]))
@@ -338,8 +337,6 @@ cv2.namedWindow("image")
 cv2.setMouseCallback("image", on_EVENT_LBUTTONDOWN)
 cv2.imshow("image", img4)
 cv2.waitKey(0)
-#show(img4, "imgthreshold")
-
 
 #cv2.destroyAllWindows()
 
