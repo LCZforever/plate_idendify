@@ -9,7 +9,6 @@ import random
 def shrink(img, times):
     H, W = img.shape
     lH, lW = int(H/times), int(W/times)
-    print(lH, lW)
     little_img = np.zeros((lH, lW), dtype=np.uint8)
     for i in range(lH):
         for j in range(lW):
@@ -66,14 +65,14 @@ def numpy_conv(inputs,filter):    #矩阵与卷积核的卷积运算
     filter_size = filter.shape[0]
 
     result = np.zeros((inputs.shape))       #这里先定义一个和输入一样的大空间，但是周围一圈后面会截掉
-    for r in range(0, H - filter_size + 1): #卷积核通过输入的每块区域，stride=1，注意输出坐标起始位置
-        for c in range(0, W - filter_size + 1):   
-            cur_input = inputs[r:r + filter_size, c:c + filter_size]            
+    for i in range(0, H - filter_size + 1): #卷积核通过输入的每块区域，stride=1，注意输出坐标起始位置
+        for j in range(0, W - filter_size + 1):   
+            cur_input = inputs[i:i + filter_size, j:j + filter_size]            
          
             cur_output = cur_input * filter       #和核进行乘法计算
             conv_sum = np.sum(cur_output) #再把所有值求和
      
-            result[r, c] = int(conv_sum)
+            result[i, j] = int(conv_sum)
     return result.astype(np.uint8)
 
 
@@ -134,53 +133,82 @@ def find_marea(img):
     print(sum_x)
     print(sum_y)
 
-def ran_hough(img):
+def ran_hough(img, evident):
     #第一步  将二值图中不为0的点的坐标存入一个数组中
     #第二步  从数组中随机选取三个点，得到三个点连成线段的（中点），
     #       得出三个点的（切线方程） ，由方程得到两个（交点），与相应的直线
     #       方程上的中点（连成两条直线），再得到其（交点）作为中心
     #第三步  中心以及三个点待入椭圆方程，a(x − p)2 + 2b(x − p)(y − q) + c(y − q)2 + 1 = 0 中，（解得椭圆）
     #第四步  用一个列表保存此椭圆参数，再次进行第二步，得到新椭圆与就椭圆（比较），
-    #        若相似度差太多，则把新椭圆加入数组中，若差不多，则取两椭圆平均，并把相应权值加1
+    #        若（相似度）差太多，则把新椭圆加入数组中，若差不多，则取两椭圆平均，并把相应权值加1
     #第五步 
     all_points = get_points(img)
     num_p = all_points.shape[0]
+    ovals = []
     print(num_p)
-
-    p1 = all_points[random.randint(0， num_p-1)]       #获取三个随机点
-    p2 = all_points[random.randint(0， num_p-1)]
-    p3 = all_points[random.randint(0， num_p-1)]
     
-    m_p1p2 = mf.mid_point(p1, p2)                     #计算三点的中点
-    m_p2p3 = mf.mid_point(p2, p3)
-    m_p1p3 = mf.mid_point(p1, p3)
+    for i in range(2000):       
+        p1 = all_points[random.randint(0, num_p-1)]       #获取三个随机点
+        p2 = all_points[random.randint(0, num_p-1)]
+        p3 = all_points[random.randint(0, num_p-1)]
+        print("p1:"+str(p1)+", p2:"+str(p2)+", p3:"+str(p3))
+        m_p1p2 = mf.mid_point(p1, p2)                     #计算三点的中点
+        m_p2p3 = mf.mid_point(p2, p3)
+        m_p1p3 = mf.mid_point(p1, p3)
+        print("m_p1p2:"+str(m_p1p2)+", m_p2p3:"+str(m_p2p3)+", m_p1p3:"+str(m_p1p3))
+        
+        p_around_p1 = get_points_around(img, p1, 8)         #获取三点附近区域的点
+        p_around_p2 = get_points_around(img, p2, 8)
+        p_around_p3 = get_points_around(img, p3, 8)
 
-    img_around_p1 = get_area_around(img, p1, 5)          #获取三点附近区域
-    img_around_p2 = get_area_around(img, p1, 5)
-    img_around_p3 = get_area_around(img, p1, 5)
+        line_k1 ,line_b1 = mf.OLS(p_around_p1)                #分别用三点附近区域的点回归出三条直线的参数
+        line_k2 ,line_b2 = mf.OLS(p_around_p2)
+        line_k3 ,line_b3 = mf.OLS(p_around_p3)
+        
+        cline_1 = mf.Line(line_k1,line_b1)                  #用参数获得三条切线直线
+        cline_2 = mf.Line(line_k2,line_b2)
+        cline_3 = mf.Line(line_k3,line_b3)
 
-    p_around_p1 = get_points(img_around_p1)               #获取三点附近区域的点
-    p_around_p2 = get_points(img_around_p2)
-    p_around_p3 = get_points(img_around_p3)
+        cross_p1p2 = cline_1.cross_point(cline_2)            #获得三条直线相交的两个交点
+        cross_p2p3 = cline_2.cross_point(cline_3)
+        if not (cross_p1p2 and cross_p2p3):
+            continue
 
-    line_k1 ,line_b1 = mf.OLS(p_around_p1)                #分别用三点附近区域的点回归出三条直线的参数
-    line_k2 ,line_b2 = mf.OLS(p_around_p2)
-    line_k3 ,line_b3 = mf.OLS(p_around_p3)
-    
-    cline_1 = mf.Line(line_k1,line_b1)                  #用参数获得三条切线直线
-    cline_2 = mf.Line(line_k2,line_b2)
-    cline_3 = mf.Line(line_k3,line_b3)
+        cline_p1 = mf.Line(p1=m_p1p2, p2=cross_p1p2)         #切线的两个交点于对应两个中点连成线
+        cline_p2 = mf.Line(p1=m_p2p3, p2=cross_p2p3)
+        
+        cen = cline_p1.cross_point(cline_p2)                 #得到椭圆的中心点
+        print("center is： "+str(cen))
+        if not cen:
+            continue
 
-    cross_p1p2 = cline_1.cross_point(cline_2)            #获得三条直线相交的两个交点
-    cross_p2p3 = cline_2.cross_point(cline_3)
+        oval_new = mf.Oval(cen=cen, p1=p1, p2=p2, p3=p3)
+        if not oval_new.enable:
+            continue 
+        oval_new.print_fomula()
 
-    mline_1 = mf.Line(p1=(c))
-
-
-    cline_p1 = mf.Line(p1=m_p1p2, p2=cross_p1p2)
-    cline_p2 = mf.Line(p1=m_p2p3, p2=cross_p2p3)
-
-    pass
+        len_ovals = len(ovals)
+        flag_append = True
+        if len_ovals == 0:
+            ovals.append(oval_new)
+        else:
+            for i in range(len_ovals):                   #将新的椭圆于已有椭圆相比较，若相似则融合，若不相似则加入列表
+                if ovals[i].similar(oval_new, 5):
+                    flag_append = False
+                    ovals[i].fuse(oval_new)                                 
+                    if ovals[i].evident > evident:       #若列表中有超过权值的椭圆，返回此椭圆
+                        return ovals[i]     
+                print("evident: " + str(ovals[i].evident)) 
+            if flag_append:    
+                ovals.append(oval_new)       
+                
+    maxs = 0    
+    max_i = 0
+    for i in range(len(ovals)):
+        if ovals[i].evident >= maxs:
+            maxs = ovals[i].evident
+            max_i = i
+    return ovals[max_i]
 
 
 def get_points(img):                #得到二值图里不为零的点
@@ -189,32 +217,42 @@ def get_points(img):                #得到二值图里不为零的点
     for i in range(H):
         for j in range(W):
             if img[i][j] != 0:
-                p_list.append([i,j])
+                p_list.append([j,i])
+    #print("points in all area"+ str(p_list))
     return np.array(p_list)
 
-def get_area_around(img, point, size):   #得到图像中某点周围的一部分
-    H, W = img.shape
 
-    if point[1] - size < 0:
-        left = 0
-    else:
-        left = point[1] - size
-    if point[1] + size > W:
-        right = W-1
-    else:
-        right = point[1] + size
+def get_points_around(img, point, size):   #得到图像中某点周围的非零点
+    H, W = img.shape
+    p_list = []
 
     if point[0] - size < 0:
+        left = 0
+    else:
+        left = point[0] - size
+    if point[0] + size > W:
+        right = W
+    else:
+        right = point[0] + size
+
+    if point[1] - size < 0:
         up = 0
     else:
-        up = point[0] - size
+        up = point[1] - size
     if point[1] + size > H:
-        down = H-1
+        down = H
     else:
-        down = point[0] + size
+        down = point[1] + size
     
-    print(up,down,left,right)
-    return img[up:down,left:right]
+    for i in range(up, down):
+        for j in range(left, right):
+            if img[i][j] != 0:
+                p_list.append([j,i]) 
+
+  #  print(up,down,left,right)
+    print("points in area"+ str(p_list))
+    return np.array(p_list)
+  
 
 
 
@@ -242,18 +280,22 @@ def show(img, strs):
     cv2.imshow(strs, img)
     cv2.waitKey(0)
    
+
+def on_EVENT_LBUTTONDOWN(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        print(str(int(x))+" , "+str(int(y)))
+        cv2.imshow("image", img4)
+
 robot_filter = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]])
 one_filter = np.array([[-1,-1,-1],[2,2,2],[-1,-1,-1]])
 
-img1 = cv2.imread('A.jpg', 0)
+img1 = cv2.imread('B.jpg', 0)
+
 img1 = shrink(img1, 2)
-print_inf_of_img(img1)
+show(img1,"img")
 
 zhifang(img1)
 show(img1,"imgzhifan")
-
-
-
 
 #graychance(img1,(1.1,-10))
 #show(img1,"imggray")
@@ -261,17 +303,29 @@ show(img1,"imgzhifan")
 #img2 = numpy_conv(img1,filter_aver(5))
 #show(img2, "imgaver")
 
-# img3 = mid_value_filter(img1, 5)
-# show(img3, "imgmid")
+img3 = mid_value_filter(img1, 5)
+show(img3, "imgmid")
 
-# img4 = get_merge(img3, robot_filter, 40)
-# show(img4, "imgmerge")
+img4 = get_merge(img3, robot_filter, 40)
+show(img4, "imgmerge")
+threshold_two(img4, 50)
 
-# threshold_two(img4, 40)
-# show(img4, "imgthreshold")
+img4[:,317:321] = 0
 
 
-cv2.destroyAllWindows()
+
+oval1 = ran_hough(img4, 10)
+oval1.print_fomula()
+print(oval1.check_point([550,200]))
+#cv2.imshow("image", img4)
+cv2.namedWindow("image")
+cv2.setMouseCallback("image", on_EVENT_LBUTTONDOWN)
+cv2.imshow("image", img4)
+cv2.waitKey(0)
+#show(img4, "imgthreshold")
+
+
+#cv2.destroyAllWindows()
 
 
 
