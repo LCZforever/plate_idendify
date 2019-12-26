@@ -16,6 +16,7 @@ def shrink(img, times):
             little_img[i][j] = img[i*times][j*times]
     return little_img
 
+
 def threshold_two(img, threshold):
     shape =img.shape
     for i in range(shape[0]):
@@ -26,7 +27,15 @@ def threshold_two(img, threshold):
                 img[i][j] = 255
 
 
+def clean_along_points(img, size):      #清除二值图中那些孤立的点
+    H, W = img.shape
+    for i in range(size, H - size + 1, 2*size+1):
+        for j in range(size, W - size + 1, 2*size+1):
+            points = get_points_around(img, (j, i), size)
+            if points.shape[0] <= int(size**2*0.1):
+                img[i - size : i + size, j - size : j + size] = 0
 
+    
 
 
 def graychance(inimg, level):     #灰度变换
@@ -43,6 +52,7 @@ def graychance(inimg, level):     #灰度变换
             inimg[i][j] = value    
     print(inimg[0][0])
 
+
 def zhifang(img):          #直方图均衡化
     tran = np.zeros(256)
     for element in img.flat:
@@ -56,8 +66,6 @@ def zhifang(img):          #直方图均衡化
             img[i][j] = tran[img[i][j]]
   #  plt.bar(np.arange(256), tran)
   #  plt.show()   
-
-
 
 
 def numpy_conv(inputs,filter):    #矩阵与卷积核的卷积运算
@@ -78,7 +86,7 @@ def numpy_conv(inputs,filter):    #矩阵与卷积核的卷积运算
 
 def mid_value_filter(inputs,size):     #中值滤波
     H, W = inputs.shape
-    result = np.zeros((inputs.shape),dtype=int)       #这里先定义一个和输入一样的大空间
+    result = np.zeros((H-size+1, W-size+1),dtype = np.uint8)       #这里先定义一个和输入一样的大空间
 
     for r in range(0, H - size + 1):        #卷积核通过输入的每块区域
         for c in range(0, W - size + 1):      
@@ -103,6 +111,7 @@ def get_merge(inputs, filter, threshold):
                 conv_sum = 0
             result[r, c] = int(conv_sum)
     return result.astype(np.uint8)
+
 
 def get_mid(array):
   
@@ -132,6 +141,7 @@ def find_marea(img):
         sum_y[j] = img[j,:].sum()
     print(sum_x)
     print(sum_y)
+
 
 def ran_hough(img, evident):
     #第一步  将二值图中不为0的点的坐标存入一个数组中
@@ -193,12 +203,12 @@ def ran_hough(img, evident):
             ovals.append(oval_new)
         else:
             for i in range(len_ovals):                   #将新的椭圆于已有椭圆相比较，若相似则融合，若不相似则加入列表
-                if ovals[i].similar(oval_new, 5):
+                if ovals[i].similar(oval_new, 0.75):      #九成相似即为相似
                     flag_append = False
                     ovals[i].fuse(oval_new)                                 
                     if ovals[i].evident > evident:       #若列表中有超过权值的椭圆，返回此椭圆
                         return ovals[i]     
-                print("evident: " + str(ovals[i].evident)) 
+                #print("evident: " + str(ovals[i].evident)) 
             if flag_append:    
                 ovals.append(oval_new)       
                 
@@ -226,7 +236,7 @@ def get_points_around(img, point, size):   #得到图像中某点周围的非零
     H, W = img.shape
     p_list = []
 
-    if point[0] - size < 0:
+    if point[0] - size <= 0:
         left = 0
     else:
         left = point[0] - size
@@ -235,7 +245,7 @@ def get_points_around(img, point, size):   #得到图像中某点周围的非零
     else:
         right = point[0] + size
 
-    if point[1] - size < 0:
+    if point[1] - size <= 0:
         up = 0
     else:
         up = point[1] - size
@@ -248,14 +258,11 @@ def get_points_around(img, point, size):   #得到图像中某点周围的非零
         for j in range(left, right):
             if img[i][j] != 0:
                 p_list.append([j,i]) 
-
+    
   #  print(up,down,left,right)
-    print("points in area"+ str(p_list))
+   # print("points in area"+ str(p_list))
     return np.array(p_list)
   
-
-
-
 
 def print_zhifan(img):
     matplotlib.rcParams['font.sans-serif']=['SimHei']   # 用黑体显示中文
@@ -289,7 +296,7 @@ def on_EVENT_LBUTTONDOWN(event, x, y, flags, param):
 robot_filter = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]])
 one_filter = np.array([[-1,-1,-1],[2,2,2],[-1,-1,-1]])
 
-img1 = cv2.imread('B.jpg', 0)
+img1 = cv2.imread('C.jpg', 0)
 
 img1 = shrink(img1, 2)
 show(img1,"img")
@@ -306,17 +313,26 @@ show(img1,"imgzhifan")
 img3 = mid_value_filter(img1, 5)
 show(img3, "imgmid")
 
-img4 = get_merge(img3, robot_filter, 40)
+img4 = get_merge(img3, robot_filter, 10)
 show(img4, "imgmerge")
-threshold_two(img4, 50)
 
-img4[:,317:321] = 0
+print_inf_of_img(img4)
+threshold_two(img4, 60)
+show(img4, "image_two")
+
+clean_along_points(img4, 8)
+show(img4, "image_clean")
+#img4[:,317:321] = 0
 
 
 
-oval1 = ran_hough(img4, 10)
+oval1 = ran_hough(img4, 8)
 oval1.print_fomula()
-print(oval1.check_point([550,200]))
+print(oval1.angle,oval1.lone_axis,oval1.short_axis)
+print(oval1.check_point([67,143]))
+print(oval1.check_point([84,60]))
+print(oval1.check_point([258,148]))
+print(oval1.check_point([203,30]))
 #cv2.imshow("image", img4)
 cv2.namedWindow("image")
 cv2.setMouseCallback("image", on_EVENT_LBUTTONDOWN)

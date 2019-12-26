@@ -1,6 +1,6 @@
 import numpy as np
 import random
-
+import math
 
 class Line():
     def __init__(self, k=0, b=0, p1=[0, 0], p2=[0, 0]):
@@ -47,15 +47,33 @@ class Oval():
             mux_abc = np.array([[(p1[0]-cen[0])**2, 2*(p1[0]-cen[0])*(p1[1]-cen[1]), (p1[1]-cen[1])**2],
                                 [(p2[0]-cen[0])**2, 2*(p2[0]-cen[0])*(p2[1]-cen[1]), (p2[1]-cen[1])**2],
                                 [(p3[0]-cen[0])**2, 2*(p3[0]-cen[0])*(p3[1]-cen[1]), (p3[1]-cen[1])**2]])
-            solo = solo_equal(mux_abc, np.array([1,1,1]))
-            if solo != None:
-                self.a, self.b, self.c = solo
+            solu = solu_equal(mux_abc, np.array([1,1,1]))
+            if solu != None:
+                self.a, self.b, self.c = solu
                 self.enable = True
             else:
                 self.enable = False
                 print("Can't make the oval whese")
             self.cen = cen
         self.evident = 1
+        
+        if self.enable:  
+            print("a ",str(a)+str(type(a)))  
+            self.print_fomula()
+            print("a ",str(a)+str(type(a)))
+            print("c ",str(c))
+            print("a-c",str(a-c)+str(type(a-c)))
+            self.angle = 0.5*math.atan(self.b/(self.a-self.c))   #椭圆长轴倾角公式
+            self.long_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
+                +self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
+                    +((self.a-self.c)**2+self.b**2)**0.5)           #长轴公式
+            self.short_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
+                +self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
+                    -((self.a-self.c)**2+self.b**2)**0.5)           #短轴公式
+        else:
+            self.angle = 0
+            self.lone_axis = 0
+            self.short_axis = 0
     
     def check_point(self, p_test):
         if self.enable == True:
@@ -67,12 +85,24 @@ class Oval():
             return None
 
 
-    def similar(self, a_oval, threshold):  #判断于另外一个椭圆是否相似，threshold是阈值      
-        d_a = (self.a - a_oval.a)**2
-        d_b = (self.b - a_oval.b)**2
-        d_c = (self.c - a_oval.c)**2 
+    def similar(self, a_oval, simity):  #判断于另外一个椭圆是否相似，threshold是阈值      
+        if abs(self.angle - a_oval.angle) > (1-simity)*self.angle:
+            return False
+        if abs(self.long_axis - a_oval.long_axis) > (1-simity)*self.long_axis:
+            return False
+        if abs(self.short_axis - a_oval.short_axis) > (1-simity)*self.short_axis:
+            return False
         d_cen = (self.cen[0] - a_oval.cen[0])**2 + (self.cen[1] - a_oval.cen[1])**2
-        if d_cen <= threshold**2:
+        if d_cen > (1-simity)**2*(self.long_axis+self.short_axis):
+            return False
+
+        return True    
+       
+        
+  
+        d_cen = (self.cen[0] - a_oval.cen[0])**2 + (self.cen[1] - a_oval.cen[1])**2
+
+        if d_cen <= t_cen**2:
             return True
         else:
             return False
@@ -84,6 +114,14 @@ class Oval():
         self.c =(self.c + a_oval.c)/2
         self.cen[0] = (self.cen[0] +a_oval.cen[0])/2
         self.cen[1] = (self.cen[1] +a_oval.cen[1])/2
+        
+        self.angle = 0.5*math.atan(self.b/(self.a-self.c))                              #椭圆长轴倾角公式
+        self.lone_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
+            +self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
+                +((self.a-self.c)**2+self.b**2)**0.5)                #长轴公式
+        self.short_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
+                    +self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
+                    -((self.a-self.c)**2+self.b**2)**0.5)                #短轴公式
         self.evident += 1
 
 
@@ -93,7 +131,7 @@ class Oval():
                 +"))^2 + 2*("+str(self.b)+")(x - ("+str(self.cen[0])\
                 +"))(y - ("+str(self.cen[1])+")) + ("+str(self.c)\
                 +")(y - ("+str(self.cen[1])+"))^2 = 1")
-    
+
 
 def OLS(point_list):      #输入点集，用最小二乘法的出直线，注意点集格式为 (y, x)
     lengh = point_list.shape[0]
@@ -126,7 +164,7 @@ def line(x, a, b):
     return y
 
 
-def solo_equal(matrix,consent):     #克拉默法则解方程组
+def solu_equal(matrix,consent):     #克拉默法则解方程组
     H, W = matrix.shape
     H_c = consent.shape[0]
     solo= []
