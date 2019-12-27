@@ -4,16 +4,18 @@ import matplotlib.pyplot as plt
 import matplotlib
 import math_fun as mf
 import random
+import math
 
-
-def shrink(img, times):                  #收缩图像
+def shrink(img, times=0, mianji=150000):                  #收缩图像 
     H, W = img.shape
+    if times == 0:
+        times = math.sqrt(H*W / mianji)
     lH, lW = int(H/times), int(W/times)
     little_img = np.zeros((lH, lW), dtype=np.uint8)
     for i in range(lH):
         for j in range(lW):
           #  print(i*times, j*times)
-            little_img[i][j] = img[i*times][j*times]
+            little_img[i][j] = img[int(i*times)][int(j*times)]
     return little_img
 
 
@@ -327,7 +329,7 @@ one_filter = np.array([[-1,-1,-1],[2,2,2],[-1,-1,-1]])    #垂直梯度算子
 
 img1 = cv2.imread('C.jpg', 0)    #读入图像
 
-img1 = shrink(img1, 2)           #图像收缩
+img1 = shrink(img1)           #图像收缩
 show(img1,"img")
 
 zhifang(img1)                    #直方图均衡化
@@ -342,23 +344,22 @@ show(img1,"imgzhifan")
 img3 = mid_value_filter(img1, 5)            #中值滤波
 show(img3, "imgmid")
 
-img4 = get_merge(img3, robot_filter, 10)    #提取边缘
+img4 = get_merge(img3, robot_filter, 10)    #提取边缘，后面数字是阈值
 show(img4, "imgmerge")
 
 print_inf_of_img(img4)        
-threshold_two(img4, 50)                 #转换二值图
+threshold_two(img4, 50)                 #转换二值图，后面数字也是阈值
 show(img4, "image_two")
 
-clean_along_points(img4, 8)             #清除孤立杂点
+clean_along_points(img4, 8)             #清除孤立杂点，数字越大清理的力度越厉害
 show(img4, "image_clean")
  
-oval1 = ran_hough(img4, 8)              #随机霍夫变换
+oval1 = ran_hough(img4, 8)              #随机霍夫变换，数字越大越准，但是耗时多
 oval1.print_fomula()
 print(oval1.angle,oval1.lone_axis,oval1.short_axis)
-print(oval1.check_point([504,508]))     #越小说明点距离椭圆越近
-print(oval1.check_point([498,190]))
 
-img5 = make_image(oval1.points_on_oval())
+
+img5 = make_image(oval1.points_on_oval())   #根据拟合出的椭圆画图
 show(img5, "end")
 #flood_fill(img4, int(img4.shape[1]/2), int(img4.shape[0]/2))     #洪泛填充
 cv2.namedWindow("image")
