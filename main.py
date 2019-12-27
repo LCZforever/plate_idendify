@@ -275,6 +275,21 @@ def get_points_around(img, point, size):   #得到图像中某点周围的非零
    # print("points in area"+ str(p_list))
     return np.array(p_list)
   
+def make_image(points):                                #描点画图
+    max_px = points[:, 0].max()
+    min_px = points[:, 0].min()
+    max_py = points[:, 1].max()
+    min_py = points[:, 1].min()
+    print(str(max_px)+','+str(min_px))
+    print(str(max_py)+','+str(min_py))
+    H = max_py  + 100
+    W = max_px  + 100
+    print(str(H)+','+str(W))
+    img = np.zeros((H, W), dtype=np.uint8)
+    for point in points:
+        img[point[1], point[0]] = 255
+    
+    return img
 
 def print_zhifan(img):
     matplotlib.rcParams['font.sans-serif']=['SimHei']   # 用黑体显示中文
@@ -300,6 +315,8 @@ def show(img, strs):
     cv2.waitKey(0)
    
 
+
+
 def on_EVENT_LBUTTONDOWN(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         print(str(int(x))+" , "+str(int(y)))
@@ -308,7 +325,7 @@ def on_EVENT_LBUTTONDOWN(event, x, y, flags, param):
 robot_filter = np.array([[0,-1,0],[-1,4,-1],[0,-1,0]])    #罗伯特算子
 one_filter = np.array([[-1,-1,-1],[2,2,2],[-1,-1,-1]])    #垂直梯度算子
 
-img1 = cv2.imread('A.jpg', 0)    #读入图像
+img1 = cv2.imread('C.jpg', 0)    #读入图像
 
 img1 = shrink(img1, 2)           #图像收缩
 show(img1,"img")
@@ -341,6 +358,8 @@ print(oval1.angle,oval1.lone_axis,oval1.short_axis)
 print(oval1.check_point([504,508]))     #越小说明点距离椭圆越近
 print(oval1.check_point([498,190]))
 
+img5 = make_image(oval1.points_on_oval())
+show(img5, "end")
 #flood_fill(img4, int(img4.shape[1]/2), int(img4.shape[0]/2))     #洪泛填充
 cv2.namedWindow("image")
 cv2.setMouseCallback("image", on_EVENT_LBUTTONDOWN)

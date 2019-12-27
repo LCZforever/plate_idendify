@@ -113,7 +113,7 @@ class Oval():          #自写椭圆类
         self.evident += 1
 
 
-    def points_on_oval(self, thick):      #获取椭圆上的所有的整数点
+    def points_on_oval(self, thick=1):      #获取椭圆上的所有的整数点
         if self.enable == False:
             return None
         points = []
@@ -126,8 +126,8 @@ class Oval():          #自写椭圆类
                 if solo_r:
                     y_r1 = int(solo_r[0] + self.cen[1])
                     y_r2 = int(solo_r[1] + self.cen[1])
-                    points.append([self.cen[0] + i, y_r1])
-                    points.append([self.cen[0] + i, y_r2])
+                    points.append([int(self.cen[0]) + i, y_r1])
+                    points.append([int(self.cen[0]) + i, y_r2])
                 else:
                     flag_r = False
             if flag_l:
@@ -135,13 +135,13 @@ class Oval():          #自写椭圆类
                 if solo_l:
                     y_l1 = int(solo_l[0] + self.cen[1])
                     y_l2 = int(solo_l[1] + self.cen[1])
-                    points.append([self.cen[0] - i, y_r1])
-                    points.append([self.cen[0] - i, y_r2])
+                    points.append([int(self.cen[0]) - i, y_l1])
+                    points.append([int(self.cen[0]) - i, y_l2])
                 else:
                     flag_l = False
             i += 1
         self.points = points
-        return points
+        return np.array(points)
 
 
     def print_fomula(self):                               #打印椭圆方程
