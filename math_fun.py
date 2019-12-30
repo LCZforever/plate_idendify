@@ -1,8 +1,10 @@
 import numpy as np
 import random
 import math
+import time
+#数学几何运算相关类与函数，包含椭圆和直线两种类
 
-class Line():        #自写线类
+class Line():        #斜截式线类
     def __init__(self, k=0, b=0, p1=[0, 0], p2=[0, 0]):
         if p1==[0, 0] and p2==[0, 0]:
             self.k = k
@@ -11,7 +13,7 @@ class Line():        #自写线类
             self.k = (p2[1] - p1[1]) / (p2[0] - p1[0])
             self.b = p1[1] - self.k*p1[0]
         elif p2[0] - p1[0] == 0:
-            self.k = 65535
+            self.k = 65536
             self.b = p1[1] - self.k*p1[0]
 
     def y_value(self, x):             #给定x，求y值
@@ -22,13 +24,101 @@ class Line():        #自写线类
 
     def cross_point(self, line):      #求与另外直线的交点
         if self.k == line.k:
-            print("Parallel and no cross point")
+            #print("Parallel and no cross point")
             return None
         else:
             p_x = (self.b - line.b) / (line.k - self.k)
             p_y = (self.k*line.b - line.k*self.b)/(self.k - line.k)
-            print("cross point: "+'('+str(p_x)+", "+str(p_y)+')')
+           # print("cross point: "+'('+str(p_x)+", "+str(p_y)+')')
         return [p_x, p_y]
+
+class Line2():      #采用点法式重写直线类
+    def __init__(self, r='#', angle='#', p1=None, p2=None, k='#', b='#'):
+        if r != '#' and angle != '#':
+            self.r = r
+            self.angle = angle
+        else:
+            if p1 and p2 and p2[0] == p1[0]:
+                if p1[0] >= 0:
+                    self.angle = 0
+                else:
+                    self.angle = math.pi
+                self.r = abs(p1[0])
+            else:
+                if p1 and p2:
+                    self.k = (p2[1] - p1[1]) / (p2[0] - p1[0])
+                    self.b = p1[1] - self.k*p1[0]
+                elif k!='#' and b!='#':
+                    self.k = k
+                    self.b = b  
+               # print(str(self.k)+','+str(self.b))                        
+                if self.k == 0:
+                    if self.b > 0:
+                        self.angle = math.pi/2
+                    else:
+                        self.angle = -math.pi/2
+                elif self.k != 0:
+                    if self.b > 0:
+                        if self.k > 0:
+                            self.angle =  math.pi + math.atan(-(1/self.k)) 
+                        elif self.k < 0:
+                            self.angle =  math.atan(-(1/self.k))
+                    elif self.b < 0:
+                        if self.k > 0:
+                            self.angle =  math.atan(-(1/self.k))
+                        elif self.k < 0:
+                            self.angle =  math.atan(-(1/self.k)) - math.pi  
+                    elif self.b == 0:
+                        self.angle = math.atan(-(1/self.k))
+                self.r = abs(self.b)/math.sqrt(self.k**2 + 1)
+        self.evident = 1
+
+
+    def cross_point(self, line):      #求与另外直线的交点
+        if self.angle == line.angle:
+            #print("Parallel and no cross point")
+            return None
+        else:
+            p_x = (math.sin(line.angle)*self.r - math.sin(self.angle)*line.r)/math.sin(line.angle - self.angle)
+            p_y = (math.cos(line.angle)*self.r - math.cos(self.angle)*line.r)/math.sin(self.angle - line.angle)
+           # print("cross point: "+'('+str(p_x)+", "+str(p_y)+')')
+        return [p_x, p_y]         
+
+
+    def similar(self, line, simity):
+        if abs(self.angle - line.angle) > (1-simity)*(math.pi/2):
+            return False
+        if abs(self.r - line.r) > (1-simity)*(0.9*self.r + 90):
+            return False
+        return True
+
+
+    def fuse(self, line):
+        self.r = (self.r*self.evident + line.r)/(self.evident + 1)
+        self.angle = (self.angle*self.evident + line.angle)/(self.evident + 1)
+        self.evident += 1
+        
+
+    def fun(self, x):
+        if self.angle == 0 or self.angle == math.pi:
+            return ['x', self.r/math.cos(self.angle)]
+        else:
+            return ['y', (self.r - x*math.cos(self.angle))/math.sin(self.angle)]
+
+
+    def print_formula(self):
+        if abs(self.angle - 0) < 0.0000001 or abs(self.angle - math.pi) < 0.0000001:
+            str_y = " "
+            str_x = str(math.cos(self.angle)) + "*x"
+        elif abs(self.angle - math.pi/2) < 0.0000001 or abs(self.angle + math.pi/2) < 0.0000001:
+            str_x = " "
+            str_y = str(math.sin(self.angle)) + "*y"
+        else:
+            str_x = " + ("+str(math.cos(self.angle)) + ")*x"
+            str_y = str(math.sin(self.angle)) + "*y"
+        print(str(self.r)+" = "+str_y+str_x)
+        print(str(self.r)+" = sin("+str(self.angle)+")*y + cos("+str(self.angle)+")*x")
+
 
 class Oval():          #自写椭圆类
     def __init__(self, a=0, b=0, c=0,cen = None,
@@ -58,7 +148,7 @@ class Oval():          #自写椭圆类
         self.evident = 1
         
         if self.enable:  
-            self.print_fomula()
+            #self.print_fomula()
             self.angle = 0.5*math.atan(2*self.b/(self.a-self.c))   #椭圆长轴倾角公式
             self.long_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
                 +2*self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
@@ -85,9 +175,9 @@ class Oval():          #自写椭圆类
     def similar(self, a_oval, simity):         #判断于另外一个椭圆是否相似，simity是给定的相似度      
         if abs(self.angle - a_oval.angle) > (1-simity)*self.angle:
             return False
-        if abs(self.long_axis - a_oval.long_axis) > (1-simity)*self.long_axis:
+        if abs(self.long_axis - a_oval.long_axis) > (1-simity)**2*self.long_axis:
             return False
-        if abs(self.short_axis - a_oval.short_axis) > (1-simity)*self.short_axis:
+        if abs(self.short_axis - a_oval.short_axis) > (1-simity)**2*self.short_axis:
             return False
         d_cen = (self.cen[0] - a_oval.cen[0])**2 + (self.cen[1] - a_oval.cen[1])**2
         if d_cen > (1-simity)**2*(self.long_axis+self.short_axis):
@@ -97,11 +187,11 @@ class Oval():          #自写椭圆类
         
 
     def fuse(self, a_oval):              #与新的椭圆进行融合，并更新相应参数和属性
-        self.a =(self.a + a_oval.a)/2
-        self.b =(self.b + a_oval.b)/2
-        self.c =(self.c + a_oval.c)/2
-        self.cen[0] = (self.cen[0] +a_oval.cen[0])/2
-        self.cen[1] = (self.cen[1] +a_oval.cen[1])/2
+        self.a =(self.a *self.evident + a_oval.a)/(self.evident + 1)   #全局的加权平均值
+        self.b =(self.b *self.evident + a_oval.b)/(self.evident + 1)
+        self.c =(self.c *self.evident + a_oval.c)/(self.evident + 1)
+        self.cen[0] = (self.cen[0] *self.evident + a_oval.cen[0])/(self.evident + 1)
+        self.cen[1] = (self.cen[1] *self.evident + a_oval.cen[1])/(self.evident + 1)
 
         self.angle = 0.5*math.atan(2*self.b/(self.a-self.c))                 #椭圆长轴倾角公式
         self.lone_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
@@ -140,6 +230,8 @@ class Oval():          #自写椭圆类
                 else:
                     flag_l = False
             i += 1
+            if i > 1000:
+                break
         self.points = points
         return np.array(points)
 
@@ -164,19 +256,36 @@ def OLS(point_list):                      #输入点集，用最小二乘法的�
         sum_Dx += (point_list[i][0] - aver_x)**2
         sum_Dxy  += (point_list[i][0] - aver_x)*(point_list[i][1] - aver_y)
     if sum_Dx == 0 :
-        a = 65535
+        if aver_x >= 0:
+            angle = 0
+        elif aver_x < 0:
+            angle = math.pi
+        r = abs(aver_x)
+        line1 = Line2(r, angle)
     else:
-        a = sum_Dxy/sum_Dx
-    b = aver_y - a*aver_x
-    print("line is: y="+ str(a)+"x+("+str(b)+')')
+        a = sum_Dxy/sum_Dx        
+        b = aver_y - a*aver_x
+        #print(str(a)+','+str(b))
+        line1 = Line2(k=a, b=b)
 
-    return [a,b]
+    return line1
 
 
 def mid_point(p1, p2):             #求中点
     p_x = (p1[0] + p2[0])/2
     p_y = (p1[1] + p2[1])/2
     return [p_x, p_y]
+
+
+def get_mid(array):          #求中位数
+    size = array.size
+    array = np.sort(array)
+    midnum = int(size/2)
+    if size % 2 == 0:
+        mid = int((array[midnum-1] + array[midnum])/2)
+    elif size % 2 ==1:
+        mid = array[midnum]  
+    return mid
 
 
 def line(x, a, b):         #直线函数
@@ -210,7 +319,6 @@ def solu_equals(matrix,consent):       #克拉默法则解线性方程组
     return solo
     
 
-
 def points_for_test(a, b):            #生成某直线附近的随机点来测试最小二乘法函数
     x = random.randint(0, 100)
     y = line(x, a, b) + random.randint(0,30)
@@ -221,10 +329,11 @@ def points_for_test(a, b):            #生成某直线附近的随机点来测�
         points = np.vstack((points, np.array([[x, y]])))
     return points
 
+
 def solo_equal(a, b, c):      #解一元二次方程
     delta = b**2 - 4*a*c
     if delta < 0:
-        print("there is no anwser")
+        #print("there is no anwser")
         return None
     elif delta == 0:
         x1 = -b/(2*a)
@@ -236,6 +345,7 @@ def solo_equal(a, b, c):      #解一元二次方程
         x2 = (-b - math.sqrt(delta))/(2*a)
        # print("x1 = " + str(x1) + ',' + 'x2 = ' + str(x2))
         return x1, x2
+
 
 
 
