@@ -6,7 +6,7 @@ import math_fun as mf
 import random
 import math
 import time
-
+from kmeans import best_kmean
 
 ######################基本预处理函数####################
 def shrink(img, times=0, mianji=320000):         #收缩图像，mainji为最后要收缩到的总像素数
@@ -25,6 +25,10 @@ def shrink(img, times=0, mianji=320000):         #收缩图像，mainji为最后
           #  print(i*times, j*times)
             little_img[i,j] = img[int(i*times),int(j*times)]
     return little_img
+
+def cut_image(img,point_lu,point_rd):    #切割图像，并把切割出来的部分复制出来返回，参数为左上和右下两个点的坐标
+    return img[point_lu[1]: point_rd[1]+1, point_lu[0]:point_rd[0]]
+    
 
 
 def rgb_turn_gray(img):                 #转换为灰度图
@@ -174,6 +178,30 @@ def mid_value_filter(inputs,size):               #中值滤波
     return result.astype(np.uint8)
 
 
+def Masaike_filter(inputs, size, color, threshold=0.5):               #马赛克滤波
+    H, W = inputs.shape[0:2]
+    l_color = np.array([[color[2],color[1],color[0]]])
+    s_color = np.squeeze(l_color)
+    white = np.array([255,255,255])
+    
+    s_points = []
+    white_points = []
+    sq =size**2
+    for i in range(0, H - size + 1, size):             #卷积核通过输入的每块区域
+        for j in range(0, W - size + 1, size):  
+            area = inputs[i:i + size, j:j + size].reshape(sq,1,3)
+            s = area[:,0]==l_color 
+            sum_p = np.sum(s[:,0]*s[:,1]*s[:,2])
+            if sum_p > threshold*sq:             
+                inputs[i:i + size, j:j + size] = s_color
+                s_points.append([int(j+size/2),int(i+size/2)])
+            else:
+                inputs[i:i + size, j:j + size] = white
+                white_points.append([int(j+size/2),int(i+size/2)])
+                    
+    return np.array(s_points),np.array(white_points)        
+
+
 ####################后续增强特征和消除噪声的辅助函数####################
 def clean_along_points(img, size):      #清除二值图中那些孤立的点，size表范围
     H, W = img.shape
@@ -183,6 +211,8 @@ def clean_along_points(img, size):      #清除二值图中那些孤立的点，
         if points.shape[0] <= int(size**2*0.11):
             #img[i - size : i + size, j - size : j + size] = 0
             img[point[1], point[0]] = 0
+
+
 def get_merge(inputs, filter, threshold_low=5,threshold_high=254):         #提取边缘，可采用不同算子
     H, W = inputs.shape
     filter_size = filter.shape[0]
@@ -279,7 +309,7 @@ def ran_hough(img, evident):                               #随机霍夫变换�
         m_p1p3 = mf.mid_point(p1, p3)
         #print("m_p1p2:"+str(m_p1p2)+", m_p2p3:"+str(m_p2p3)+", m_p1p3:"+str(m_p1p3))
         
-        p_around_p1 = get_points_around(img, p1, 9)         #获取三点附近区域的点
+        p_around_p1 = get_points_around(img, p1, 7)         #获取三点附近区域的点
         p_around_p2 = get_points_around(img, p2, 7)
         p_around_p3 = get_points_around(img, p3, 7)
 
@@ -317,7 +347,7 @@ def ran_hough(img, evident):                               #随机霍夫变换�
             ovals.append(oval_new)
         else:
             for i in range(len_ovals):                    #将新的椭圆于已有椭圆相比较，若相似则融合，若不相似则加入列表
-                if ovals[i].similar(oval_new, 0.96):      #九成相似即为相似
+                if ovals[i].similar(oval_new, 0.70):      #九成相似即为相似
                     flag_append = False
                     ovals[i].fuse(oval_new)                                 
                     if ovals[i].evident > evident:        #若列表中有超过权值的椭圆，返回此椭圆
@@ -336,12 +366,14 @@ def ran_hough(img, evident):                               #随机霍夫变换�
     return ovals[max_i]
 
 
-def Hough_line(img, evident):
+def Hough_line(img, evident,lines_num):
     all_points = get_points(img)
     num_p = all_points.shape[0]
     lines = []
     out_lines = []
     print(num_p)
+    img_cp = np.copy(img)
+
     
     for i in range(100000):
         if len(lines) > 0 and len(lines)%500 == 0:
@@ -352,8 +384,13 @@ def Hough_line(img, evident):
                     j = j-1
                 j = j + 1
         p1 = all_points[random.randint(0, num_p-1)]         #获取1个随机点
-        p_around_p1 = get_points_around(img, p1, 7)         #获取三点附近区域的点
+        p_around_p1 = get_points_around(img, p1, 11)         #获取三点附近区域的点
         line_new = mf.OLS(p_around_p1)              #分别用三点附近区域的点回归出三条直线的参数
+
+        img0 = np.copy(img)
+        delete_linepoints(img0, line_new, gray=255, size=2)
+        img0[p1[1]-3:p1[1]+4,p1[0]-3:p1[0]+4]=150
+        show(img0, "0000", live_time=0)
 
         len_lines = len(lines)
         flag_append = True
@@ -367,12 +404,15 @@ def Hough_line(img, evident):
                     lines[j].fuse(line_new)                                 
                     if lines[j].evident > evident:        #若列表中有超过权值的椭圆，返回此椭圆
                         out_lines.append(lines[j])
-                        if len(out_lines) >17:  
+                        if len(out_lines) >lines_num:  
                             return out_lines
+                        
                         delete_linepoints(img, lines[j])
-                        show(img, "end")
+
+                        delete_linepoints(img_cp, lines[j], 255)
+                        show(img_cp, "end",0)
+
                         all_points = get_points(img)
-                        print("all "+str(all_points.shape[0]))
                         num_p = all_points.shape[0]
                         del lines[j] 
                         j = j - 1
@@ -380,11 +420,11 @@ def Hough_line(img, evident):
                 #print("evident: " + str(ovals[i].evident)) 
             if flag_append:    
                 lines.append(line_new)     
-    if len(out_lines) >3: 
-        return out_lines
+    
+    return out_lines
 
 
-#######################提取图中点集函数######################
+#######################图中点集处理函数######################
 def get_points(img):                      #得到二值图里不为零的点
     H, W = img.shape
     p_list = []
@@ -426,6 +466,56 @@ def get_points_around(img, point, size):   #得到图像中某点周围的非零
    # print("points in area"+ str(p_list))
     return np.array(p_list)
   
+def get_RGB_points(img, color, distance=75):
+    H, W = img.shape[0:2]
+    points = []
+    for i in range(H):
+        for j in range(W):
+            if (color[0]-img[i,j,0])**2+(color[1]-img[i,j,1])**2+(color[2]-img[i,j,2])**2<distance:
+                points.append([j,i])
+    return np.array(points)
+
+def get_HSI_points(img, color, distance=100):
+    H, W = img.shape[0:2]
+    points = []
+    for i in range(H):
+        for j in range(W):
+            if np.all(img[i,j,1:3]<82) and color[1]<70 and color[2]<82:
+                points.append([j,i])
+            elif 2*(color[0]-img[i,j,0])**2+(color[1]-img[i,j,1])**2+(color[2]-img[i,j,2])**2<distance:
+                points.append([j,i])
+    return np.array(points)
+
+
+def clean_points(img, points, limit):         #清除点集中不满足条件的点，limit是自写的限制函数参数
+    j=0
+    while j < points.shape[0]:
+        if limit(img, points[j]):
+            points = np.delete(points, j, axis=0)
+            j = j-1
+        j = j + 1
+    return points
+
+def biankuang(img, point):
+    H, W = img.shape[0:2]
+    if point[0] < W *0.08 or point[0] > W*0.92:
+        return True
+    if point[1] < H*0.1 or point[1] > H*0.9:
+        return True
+    return False
+
+
+def get_points_img(img, points):          #得到点集覆盖的图中周围区域，并复制出来返回
+    x_l = min(points[:,0])
+    x_r = max(points[:,0])
+    y_u = min(points[:,1])
+    y_d = max(points[:,1])
+    p_lu = [x_l-30,y_u-30]
+    p_rd = [x_r+30,y_d+30]
+
+    return cut_image(img, p_lu, p_rd)
+    
+
 
 #######################绘图与展示函数########################
 def delete_linepoints(img, line, gray=0, size=8):      #在图上绘制直线，默认为删除图中直线上的非零点
@@ -451,10 +541,12 @@ def delete_linepoints(img, line, gray=0, size=8):      #在图上绘制直线，
            
 
 def draw_point(img, points, color):    #在图上描点，颜色参数输入rgb或者灰度值
-    if type(color)==type((1)):
+    H, W = img.shape[0:2]
+    if type(color)==type((1,1)):
         color = np.array([color[2],color[1],color[0]])
     for point in points:
-        img[point[1], point[0]] = color
+        if point[1]<H and point[0]<W:
+            img[point[1], point[0]] = color
 
 
 def make_image(points):                                #普通的描点画图
@@ -527,16 +619,49 @@ def show(img, strs,live_time=1):       #显示图片，live_time为0为按任意
 
 def on_EVENT_LBUTTONDOWN(event, x, y, flags, param):   #用于显示坐标的回调函数之中
     if event == cv2.EVENT_LBUTTONDOWN:
-        print(str(int(x))+" , "+str(int(y)))
-        cv2.imshow("image", img4)
+        print(str(int(x))+" , "+str(int(y))+' color : '+str(img1[y,x]))
+        cv2.imshow("image", img1)
 
-
-#########################测试区域##########################
 v_filter = np.array([[-1,0,1],[-1,0,1],[-1,0,1]])
 x_filter = np.array([[-1,-1,-1],[-1,8,-1],[-1,-1,-1]])
-img1 = cv2.imread('G.jpg', 1)    #读入图像
-img1 = shrink(img1,mianji=240000)
-show(img1,"img",1)
+#########################测试区域##########################
+
+img1 = cv2.imread('G.jpg', 1)                         #读入图像
+
+
+
+img1 = shrink(img1,mianji=240000)                     #缩小
+# img_01 = np.copy(img1)                              #备份
+
+rgb_turn_hsi_img(img1)                                #转hsi图像
+tps = get_HSI_points(img1, (40,40,40))                #提取餐托
+draw_point(img1, tps, (0,255,0))                      #画餐托
+g_ps, w_ps = Masaike_filter(img1,20,(0,255,0),0.2)    #马赛克化
+ww_ps = clean_points(img1, w_ps, biankuang)           #清除在边框的点
+p_dirt, c_dirt = best_kmean(ww_ps, 5)                 #k值聚类，大概确定每个餐盘位置
+
+ 
+img01 = cv2.imread('G.jpg', 0)                        #读入图像
+img02 = shrink(img01,mianji=240000)                   #图像收缩
+zhifang(img02)                                        #直方图均衡化
+img03 = mid_value_filter(img02, 7)                    #中值滤波
+img04 = get_merge(img03, robot_filter, 45)            #提取边缘，后面数字是阈值
+threshold_two(img04, 45)                              #转换二值图，后面数字也是阈值
+clean_along_points(img04, 6)
+show(img04,"IMG04",1)
+
+
+img_part = []
+for key in p_dirt.keys():                             #将图像分割成只有一个餐盘的部分，装入列表中
+    img_part.append(get_points_img(img04, p_dirt[key]))
+
+lll = 1
+for part in img_part:
+    show(part, "part"+str(lll))
+    lll +=1
+    oval1 = ran_hough(part,5)
+    img5 = make_image(oval1.points_on_oval())   #根据拟合出的椭圆画图
+    show(img5, "endness"+str(lll))
 
 
 # rgb_turn_hsi_img(img1)
@@ -547,3 +672,7 @@ show(img1,"img",1)
 # show(img_i,"imgi",0)
 
 
+cv2.namedWindow("image")
+cv2.setMouseCallback("image", on_EVENT_LBUTTONDOWN)
+cv2.imshow("image", img02)
+cv2.waitKey(0)

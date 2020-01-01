@@ -255,7 +255,8 @@ def OLS(point_list):                      #输入点集，用最小二乘法的�
     for i in range(lengh):
         sum_Dx += (point_list[i][0] - aver_x)**2
         sum_Dxy  += (point_list[i][0] - aver_x)*(point_list[i][1] - aver_y)
-    if sum_Dx == 0 :
+    # print(sum_Dx)
+    if sum_Dx/lengh < 0.1 :        #样本的方差若很小，则视为垂直于x轴
         if aver_x >= 0:
             angle = 0
         elif aver_x < 0:
@@ -265,10 +266,41 @@ def OLS(point_list):                      #输入点集，用最小二乘法的�
     else:
         a = sum_Dxy/sum_Dx        
         b = aver_y - a*aver_x
-        #print(str(a)+','+str(b))
+        # print(str(a)+','+str(b))
         line1 = Line2(k=a, b=b)
 
     return line1
+
+
+def OLS2(point_list):                      #输入点集，用最小二乘法的出直线，注意点集格式为 (y, x)
+    n = point_list.shape[0]
+    aver_x = np.mean(point_list[:,0])
+    aver_y = np.mean(point_list[:,1])
+    xy = point_list[:,0]*point_list[:,1]
+    xx = point_list[:,0]*point_list[:,0]
+    
+
+    # print(np.sum(xy))
+    # print(n*aver_x*aver_y)
+    up = np.sum(xy)-n*aver_x*aver_y
+    down= np.sum(xx)-n*aver_x**2
+    # print(up)
+    # print(down)
+    if down == 0 :
+        if aver_x >= 0:
+            angle = 0
+        elif aver_x < 0:
+            angle = math.pi
+        r = abs(aver_x)
+        line1 = Line2(r, angle)
+    else:
+        a = up/down        
+        b = aver_y - a*aver_x
+        # print(str(a)+','+str(b))
+        line1 = Line2(k=a, b=b)
+
+    return line1
+
 
 
 def mid_point(p1, p2):             #求中点
@@ -320,14 +352,27 @@ def solu_equals(matrix,consent):       #克拉默法则解线性方程组
     
 
 def points_for_test(a, b):            #生成某直线附近的随机点来测试最小二乘法函数
-    x = random.randint(0, 100)
-    y = line(x, a, b) + random.randint(0,30)
-    points = np.array([[x, y]])
+    points = []
     for i in range(1000):
-        x = random.randint(0, 100)
-        y = line(x, a, b) + random.randint(-5,5)
-        points = np.vstack((points, np.array([[x, y]])))
-    return points
+        y = line(i, a, b) + random.randint(-5,5)
+        points.append([i,y])
+    return np.array(points)
+
+
+def points_for_test_2(r, sita):
+    if sita!=0 and sita!=math.pi:
+        return points_for_test(-1/math.tan(sita), r/math.sin(sita))
+    else:
+        print("x=?")
+        points = []
+        real_x = r/math.cos(sita)
+
+        for i in range(2000):
+            x = real_x +random.randint(-1,0)
+            points.append([real_x, i])
+        points.append([real_x+1,-2])
+        points.append([real_x-1,-1])
+        return np.array(points)
 
 
 def solo_equal(a, b, c):      #解一元二次方程
@@ -345,7 +390,4 @@ def solo_equal(a, b, c):      #解一元二次方程
         x2 = (-b - math.sqrt(delta))/(2*a)
        # print("x1 = " + str(x1) + ',' + 'x2 = ' + str(x2))
         return x1, x2
-
-
-
 
