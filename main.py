@@ -292,7 +292,7 @@ def ran_hough(img, evident):                               #随机霍夫变换�
     ovals = []
     print(num_p)
     j=0
-    for i in range(200000):   
+    for i in range(60000):   
         if len(ovals) > 0 and len(ovals)%500 == 0:
             j=0
             while j <= (len(ovals)-1):
@@ -309,9 +309,9 @@ def ran_hough(img, evident):                               #随机霍夫变换�
         m_p1p3 = mf.mid_point(p1, p3)
         #print("m_p1p2:"+str(m_p1p2)+", m_p2p3:"+str(m_p2p3)+", m_p1p3:"+str(m_p1p3))
         
-        p_around_p1 = get_points_around(img, p1, 7)         #获取三点附近区域的点
-        p_around_p2 = get_points_around(img, p2, 7)
-        p_around_p3 = get_points_around(img, p3, 7)
+        p_around_p1 = get_points_around(img, p1, 6)         #获取三点附近区域的点
+        p_around_p2 = get_points_around(img, p2, 6)
+        p_around_p3 = get_points_around(img, p3, 6)
 
         cline_1 = mf.OLS(p_around_p1)              #分别用三点附近区域的点回归出三条直线的参数
         cline_2 = mf.OLS(p_around_p2)
@@ -647,7 +647,7 @@ zhifang(img02)                                        #直方图均衡化
 img03 = mid_value_filter(img02, 7)                    #中值滤波
 img04 = get_merge(img03, robot_filter, 50)            #提取边缘，后面数字是阈值
 threshold_two(img04, 50)                              #转换二值图，后面数字也是阈值
-clean_along_points(img04, 6)
+clean_along_points(img04, 10)
 show(img04,"IMG04",1)
 
 
@@ -659,7 +659,7 @@ lll = 1
 for part in img_part:
     show(part, "part"+str(lll))
     lll +=1
-    oval1 = ran_hough(part,5)
+    oval1 = ran_hough(part,4)
     img5 = make_image(oval1.points_on_oval())   #根据拟合出的椭圆画图
     show(img5, "endness"+str(lll))
 
