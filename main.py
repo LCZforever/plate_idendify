@@ -347,7 +347,7 @@ def ran_hough(img, evident):                               #随机霍夫变换�
             ovals.append(oval_new)
         else:
             for i in range(len_ovals):                    #将新的椭圆于已有椭圆相比较，若相似则融合，若不相似则加入列表
-                if ovals[i].similar(oval_new, 0.70):      #九成相似即为相似
+                if ovals[i].similar(oval_new, 0.75):      #九成相似即为相似
                     flag_append = False
                     ovals[i].fuse(oval_new)                                 
                     if ovals[i].evident > evident:        #若列表中有超过权值的椭圆，返回此椭圆
@@ -645,8 +645,8 @@ img01 = cv2.imread('G.jpg', 0)                        #读入图像
 img02 = shrink(img01,mianji=240000)                   #图像收缩
 zhifang(img02)                                        #直方图均衡化
 img03 = mid_value_filter(img02, 7)                    #中值滤波
-img04 = get_merge(img03, robot_filter, 45)            #提取边缘，后面数字是阈值
-threshold_two(img04, 45)                              #转换二值图，后面数字也是阈值
+img04 = get_merge(img03, robot_filter, 50)            #提取边缘，后面数字是阈值
+threshold_two(img04, 50)                              #转换二值图，后面数字也是阈值
 clean_along_points(img04, 6)
 show(img04,"IMG04",1)
 

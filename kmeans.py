@@ -1,8 +1,3 @@
-# 这个文件是为了把k_means算法封装起来，形成一个函数，只是分类，不画图
-# 函数设计
-# 输入：n乘以2的numpy矩阵，分成的类数m
-# 返回：m个xxx乘以2的矩阵
-
 import random
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,6 +5,10 @@ from numpy import random as nr
 import matplotlib.path as mpath
 from itertools import zip_longest
 # 思考; 如何定初始的中心点，使迭代次数降低
+# 这个文件是为了把k_means算法封装起来，形成一个函数
+# 函数设计
+# 输入：n乘以2的numpy矩阵，分成的类数m
+# 返回：m个xxx乘以2的矩阵
 
 # 计算每个两点之间的距离平方
 def distance_sq(p1, p2):
