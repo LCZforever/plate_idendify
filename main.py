@@ -292,8 +292,8 @@ def ran_hough(img, evident):                               #随机霍夫变换�
     ovals = []
     print(num_p)
     j=0
-    for i in range(60000):   
-        if len(ovals) > 0 and len(ovals)%500 == 0:
+    for i in range(400000):   
+        if len(ovals) > 0 and len(ovals) > 20000:
             j=0
             while j <= (len(ovals)-1):
                 if ovals[j].evident == 1:
@@ -347,7 +347,7 @@ def ran_hough(img, evident):                               #随机霍夫变换�
             ovals.append(oval_new)
         else:
             for i in range(len_ovals):                    #将新的椭圆于已有椭圆相比较，若相似则融合，若不相似则加入列表
-                if ovals[i].similar(oval_new, 0.75):      #九成相似即为相似
+                if ovals[i].similar(oval_new, 0.8):      #九成相似即为相似
                     flag_append = False
                     ovals[i].fuse(oval_new)                                 
                     if ovals[i].evident > evident:        #若列表中有超过权值的椭圆，返回此椭圆
@@ -375,8 +375,8 @@ def Hough_line(img, evident,lines_num):
     img_cp = np.copy(img)
 
     
-    for i in range(100000):
-        if len(lines) > 0 and len(lines)%500 == 0:
+    for i in range(200000):
+        if len(lines) > 0 and len(lines)%10000 == 0:
             j=0
             while j < (len(lines)-1):
                 if lines[j].evident == 1:
@@ -387,10 +387,10 @@ def Hough_line(img, evident,lines_num):
         p_around_p1 = get_points_around(img, p1, 11)         #获取三点附近区域的点
         line_new = mf.OLS(p_around_p1)              #分别用三点附近区域的点回归出三条直线的参数
 
-        img0 = np.copy(img)
-        delete_linepoints(img0, line_new, gray=255, size=2)
-        img0[p1[1]-3:p1[1]+4,p1[0]-3:p1[0]+4]=150
-        show(img0, "0000", live_time=0)
+        # img0 = np.copy(img)
+        # delete_linepoints(img0, line_new, gray=255, size=2)
+        # img0[p1[1]-3:p1[1]+4,p1[0]-3:p1[0]+4]=150
+        # show(img0, "0000", live_time=0)
 
         len_lines = len(lines)
         flag_append = True
@@ -404,13 +404,13 @@ def Hough_line(img, evident,lines_num):
                     lines[j].fuse(line_new)                                 
                     if lines[j].evident > evident:        #若列表中有超过权值的椭圆，返回此椭圆
                         out_lines.append(lines[j])
-                        if len(out_lines) >lines_num:  
+                        if len(out_lines) >= lines_num:  
                             return out_lines
                         
                         delete_linepoints(img, lines[j])
 
-                        delete_linepoints(img_cp, lines[j], 255)
-                        show(img_cp, "end",0)
+                        # delete_linepoints(img_cp, lines[j], 255)
+                        # show(img_cp, "end",0)
 
                         all_points = get_points(img)
                         num_p = all_points.shape[0]
@@ -525,6 +525,7 @@ def delete_linepoints(img, line, gray=0, size=8):      #在图上绘制直线，
         y = line.fun(i)
         y[1] = int(y[1])
         if y[0] == 'x':    
+            print("x = something")
             if y[1]>=size and y[1]<=W-size:
                 img[:,y[1]-size:y[1]+size] = gray
             elif y[1]<size:
@@ -558,13 +559,21 @@ def make_image(points):                                #普通的描点画图
     min_py = points[:, 1].min()
     # print(str(max_px)+','+str(min_px))
     # print(str(max_py)+','+str(min_py))
-    if min_px <0 or min_py<0 or max_px >1000 or max_py>1000:
-        return np.zeros((450,450), dtype=np.uint8)
+    if min_px < 0:
+        min_px = 0
+    if min_py < 0:
+        min_py = 0
+    if max_px > 1000:
+        max_px = 1000
+    if max_py > 1000:
+        max_py = 1000 
     H = max_py  + 50
     W = max_px  + 50
     # print(str(H)+','+str(W))
     img = np.zeros((H, W), dtype=np.uint8)
     for point in points:
+        if point[0] <0 or point[1]<0 or point[0] >1000 or point[1]>1000:
+            continue
         img[point[1], point[0]] = 255
     
     return img
@@ -627,11 +636,10 @@ x_filter = np.array([[-1,-1,-1],[-1,8,-1],[-1,-1,-1]])
 #########################测试区域##########################
 
 img1 = cv2.imread('G.jpg', 1)                         #读入图像
-
-
-
 img1 = shrink(img1,mianji=240000)                     #缩小
 # img_01 = np.copy(img1)                              #备份
+show(img1, "origin image",1)
+
 
 rgb_turn_hsi_img(img1)                                #转hsi图像
 tps = get_HSI_points(img1, (40,40,40))                #提取餐托
@@ -657,11 +665,22 @@ for key in p_dirt.keys():                             #将图像分割成只有�
 
 lll = 1
 for part in img_part:
-    show(part, "part"+str(lll))
+    part_cp = np.copy(part)
+    show(part_cp, "part"+str(lll))
     lll +=1
-    oval1 = ran_hough(part,4)
-    img5 = make_image(oval1.points_on_oval())   #根据拟合出的椭圆画图
-    show(img5, "endness"+str(lll))
+    lines = Hough_line(part_cp, 50, 6)
+    rect_lines = mf.check_rectangle(lines)     #备份矩形直线集
+    if rect_lines:
+        for rl in rect_lines:                     #画矩形
+            for pl in rl:
+                for l in pl:
+                    delete_linepoints(part_cp, l, 255, 3)
+        show(part_cp,"part_line"+str(lll),1)
+    else:
+        oval1 = ran_hough(part,5)
+        oval1.print_fomula()
+        img5 = make_image(oval1.points_on_oval())   #根据拟合出的椭圆画图
+        show(img5, "endness"+str(lll))
 
 
 # rgb_turn_hsi_img(img1)

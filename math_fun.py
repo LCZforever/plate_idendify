@@ -173,8 +173,8 @@ class Oval():          #自写椭圆类
 
 
     def similar(self, a_oval, simity):         #判断于另外一个椭圆是否相似，simity是给定的相似度      
-        if abs(self.angle - a_oval.angle) > (1-simity)*self.angle:
-            return False
+        # if abs(self.angle - a_oval.angle) > (1-simity)*self.angle:
+        #     return False
         if abs(self.long_axis - a_oval.long_axis) > (1-simity)**2*self.long_axis:
             return False
         if abs(self.short_axis - a_oval.short_axis) > (1-simity)**2*self.short_axis:
@@ -256,7 +256,7 @@ def OLS(point_list):                      #输入点集，用最小二乘法的�
         sum_Dx += (point_list[i][0] - aver_x)**2
         sum_Dxy  += (point_list[i][0] - aver_x)*(point_list[i][1] - aver_y)
     # print(sum_Dx)
-    if sum_Dx/lengh < 0.1 :        #样本的方差若很小，则视为垂直于x轴
+    if sum_Dx/lengh < 1 :        #样本的方差若很小，则视为垂直于x轴
         if aver_x >= 0:
             angle = 0
         elif aver_x < 0:
@@ -390,4 +390,29 @@ def solo_equal(a, b, c):      #解一元二次方程
         x2 = (-b - math.sqrt(delta))/(2*a)
        # print("x1 = " + str(x1) + ',' + 'x2 = ' + str(x2))
         return x1, x2
+
+def check_rectangle(lines, error=0.1745):        #检测直线集的直线能否围成一个矩形，erro是所能允许的误差
+    nl = len(lines)
+    if nl<4:                              #三条线可构不成矩形
+        return False  
+    para_lines = []             
+    rect_lines = []   
+    for i in range(nl):                 #寻找平行线集，两条一对
+        for j in range(i+1,nl):
+            if abs(lines[i].angle-lines[j].angle)%math.pi < error:
+                para_lines.append([lines[i],lines[j]])
+    n_pl = len(para_lines)
+    if n_pl<2:                          #如果只有一对平行线，则不构成矩形
+        return False
+
+    for i in range(n_pl):             #在平行线集寻找垂直的关系，四条一组
+        for j in range(i+1,n_pl):     #这里没有用平均值做差，可能会使误差变大，不过我也懒得改了
+            if abs(abs(para_lines[i][0].angle-para_lines[j][0].angle)%math.pi-math.pi/2) < error:    
+                rect_lines.append([para_lines[i], para_lines[j]])
+
+    if len(rect_lines):
+        return rect_lines
+    else:
+        return False
+
 
