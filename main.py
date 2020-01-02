@@ -8,6 +8,7 @@ import math
 import time
 from kmeans import best_kmean
 
+#degug2.22
 ######################基本预处理函数####################
 def shrink(img, times=0, mianji=320000):         #收缩图像，mainji为最后要收缩到的总像素数
     H, W =img.shape[0:2] 
