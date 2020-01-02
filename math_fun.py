@@ -4,33 +4,6 @@ import math
 import time
 #数学几何运算相关类与函数，包含椭圆和直线两种类
 
-class Line():        #斜截式线类
-    def __init__(self, k=0, b=0, p1=[0, 0], p2=[0, 0]):
-        if p1==[0, 0] and p2==[0, 0]:
-            self.k = k
-            self.b = b
-        elif p2[0] - p1[0] != 0:
-            self.k = (p2[1] - p1[1]) / (p2[0] - p1[0])
-            self.b = p1[1] - self.k*p1[0]
-        elif p2[0] - p1[0] == 0:
-            self.k = 65536
-            self.b = p1[1] - self.k*p1[0]
-
-    def y_value(self, x):             #给定x，求y值
-        return self.k*x + self.b
-
-    def x_value(self, y):             #给定y，求x值
-        return (y - self.b)/self.k
-
-    def cross_point(self, line):      #求与另外直线的交点
-        if self.k == line.k:
-            #print("Parallel and no cross point")
-            return None
-        else:
-            p_x = (self.b - line.b) / (line.k - self.k)
-            p_y = (self.k*line.b - line.k*self.b)/(self.k - line.k)
-           # print("cross point: "+'('+str(p_x)+", "+str(p_y)+')')
-        return [p_x, p_y]
 
 class Line2():      #采用点法式重写直线类
     def __init__(self, r='#', angle='#', p1=None, p2=None, k='#', b='#'):
@@ -149,13 +122,16 @@ class Oval():          #自写椭圆类
         
         if self.enable:  
             #self.print_fomula()
-            self.angle = 0.5*math.atan(2*self.b/(self.a-self.c))   #椭圆长轴倾角公式
-            self.long_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
-                +2*self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
-                    +((self.a-self.c)**2+(2*self.b)**2)**0.5)           #长轴公式
-            self.short_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
-                +2*self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
-                    -((self.a-self.c)**2+(2*self.b)**2)**0.5)           #短轴公式
+            # self.angle = 0.5*math.atan(2*self.b/(self.a-self.c))   #椭圆长轴倾角公式
+            try:
+                self.long_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
+                    +2*self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
+                        +((self.a-self.c)**2+(2*self.b)**2)**0.5)           #长轴公式
+                self.short_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
+                    +2*self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
+                        -((self.a-self.c)**2+(2*self.b)**2)**0.5)           #短轴公式
+            except BaseException:
+                print("a: "+str(self.a)+"b: "+str(self.b)+"c: "+str(self.c))
             self.points = None           #椭圆的整数点集，等到要用再调用相应函数启用
         else:
             self.angle = 0
@@ -193,7 +169,7 @@ class Oval():          #自写椭圆类
         self.cen[0] = (self.cen[0] *self.evident + a_oval.cen[0])/(self.evident + 1)
         self.cen[1] = (self.cen[1] *self.evident + a_oval.cen[1])/(self.evident + 1)
 
-        self.angle = 0.5*math.atan(2*self.b/(self.a-self.c))                 #椭圆长轴倾角公式
+        # self.angle = 0.5*math.atan(2*self.b/(self.a-self.c))                 #椭圆长轴倾角公式
         self.lone_axis = 2*(self.a*self.cen[0]**2+self.c*self.cen[1]**2\
             +2*self.b*self.cen[0]*self.cen[1]-1) / (self.a+self.c\
                 +((self.a-self.c)**2+(2*self.b)**2)**0.5)                    #长轴公式

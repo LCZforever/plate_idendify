@@ -290,7 +290,7 @@ def ran_hough(img, evident):                               #随机霍夫变换�
     all_points = get_points(img)
     num_p = all_points.shape[0]
     ovals = []
-    print(num_p)
+    print("amount of the points is: "+str(num_p))
     j=0
     for i in range(400000):   
         if len(ovals) > 0 and len(ovals) > 20000:
@@ -351,7 +351,7 @@ def ran_hough(img, evident):                               #随机霍夫变换�
                     flag_append = False
                     ovals[i].fuse(oval_new)                                 
                     if ovals[i].evident > evident:        #若列表中有超过权值的椭圆，返回此椭圆
-                        print("time"+str(i))
+                        # print("time"+str(i))
                         return ovals[i]     
                 #print("evident: " + str(ovals[i].evident)) 
             if flag_append:    
@@ -362,7 +362,7 @@ def ran_hough(img, evident):                               #随机霍夫变换�
         if ovals[i].evident >= maxs:
             maxs = ovals[i].evident
             max_i = i
-    print("time     "+str(i))
+    # print("time     "+str(i))
     return ovals[max_i]
 
 
@@ -371,7 +371,7 @@ def Hough_line(img, evident,lines_num):
     num_p = all_points.shape[0]
     lines = []
     out_lines = []
-    print(num_p)
+    print("amount of the points is: "+str(num_p))
     img_cp = np.copy(img)
 
     
@@ -525,7 +525,7 @@ def delete_linepoints(img, line, gray=0, size=8):      #在图上绘制直线，
         y = line.fun(i)
         y[1] = int(y[1])
         if y[0] == 'x':    
-            print("x = something")
+            # print("x = something")
             if y[1]>=size and y[1]<=W-size:
                 img[:,y[1]-size:y[1]+size] = gray
             elif y[1]<size:
