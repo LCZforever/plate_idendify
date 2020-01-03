@@ -214,6 +214,9 @@ class Oval():          #自写椭圆类
 
     def print_fomula(self):                               #打印椭圆方程
         if self.enable:
+            print(self.lone_axis)
+            print(self.short_axis)
+
             print("oval: "+str(self.a)+'(x - ('+str(self.cen[0])\
                 +"))^2 + 2*("+str(self.b)+")(x - ("+str(self.cen[0])\
                 +"))(y - ("+str(self.cen[1])+")) + ("+str(self.c)\

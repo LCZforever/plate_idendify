@@ -7,6 +7,7 @@ import random
 import math
 import time
 from kmeans import best_kmean
+import plate_data as pd
 
 #degug2.22
 ######################基本预处理函数####################
@@ -438,7 +439,7 @@ def get_points(img):                      #得到二值图里不为零的点
 
 
 def get_points_around(img, point, size):   #得到图像中某点周围的非零点
-    H, W = img.shape
+    H, W = img.shape[0:2]
     p_list = []
 
     if point[0] - size <= 0:
@@ -461,7 +462,7 @@ def get_points_around(img, point, size):   #得到图像中某点周围的非零
     
     for i in range(up, down):
         for j in range(left, right):
-            if img[i][j] != 0:
+            if np.all(img[i][j] != 0):
                 p_list.append([j,i]) 
   #  print(up,down,left,right)
    # print("points in area"+ str(p_list))
@@ -514,8 +515,38 @@ def get_points_img(img, points):          #得到点集覆盖的图中周围区�
     p_lu = [x_l-30,y_u-30]
     p_rd = [x_r+30,y_d+30]
 
-    return cut_image(img, p_lu, p_rd)
-    
+    return cut_image(img, p_lu, p_rd),[x_l-30, y_u-30]
+
+def get_points_around_p(img, points):
+    pps = get_points_around(img, points[0],3)
+    for i in range(1,points.shape[0]):
+        p = get_points_around(img, points[i],3)
+        if p.shape[0]!=0 :
+            if pps.shape[0]==0:
+                 pps = p
+            try:
+                pps = np.concatenate([pps,p])
+            except BaseException:
+                print("warming"+str(p)+' and '+str(pps))
+    return pps
+
+def get_ractangle_point(rect):          #获取矩形边框整数点集
+    if not rect:
+        return None
+    points = []
+    for i in range(2):
+        for j in range(2):
+            cross_p1 = rect[i][j].cross_point(rect[(i+1)%2][0])
+            cross_p2 = rect[i][j].cross_point(rect[(i+1)%2][1])
+            if cross_p1[0]==cross_p2[0]:
+                for t in range(int(min(cross_p1[1],cross_p2[1])),int(max(cross_p1[1],cross_p2[1]))+1):
+                    points.append([int(cross_p1[0]), t])
+            else:
+                for t in range(int(min(cross_p1[0],cross_p2[0])),int(max(cross_p1[0],cross_p2[0]))+1):
+                    points.append([t, int(rect[i][j].fun(t)[1])])
+
+    return np.array(points)
+
 
 
 #######################绘图与展示函数########################
@@ -629,60 +660,97 @@ def show(img, strs,live_time=1):       #显示图片，live_time为0为按任意
 
 def on_EVENT_LBUTTONDOWN(event, x, y, flags, param):   #用于显示坐标的回调函数之中
     if event == cv2.EVENT_LBUTTONDOWN:
-        print(str(int(x))+" , "+str(int(y))+' color : '+str(img1[y,x]))
-        cv2.imshow("image", img1)
+        print(str(int(x))+" , "+str(int(y))+' color : '+str(img1_CP[y,x]))
+        cv2.imshow("image", img1_CP)
 
 v_filter = np.array([[-1,0,1],[-1,0,1],[-1,0,1]])
 x_filter = np.array([[-1,-1,-1],[-1,8,-1],[-1,-1,-1]])
 #########################测试区域##########################
-
+plates = []                                           #待查价格的餐盘列表
+all_size = 400*250                                    #图像区域的真实面积，单位为平方毫米
 img1 = cv2.imread('G.jpg', 1)                         #读入图像
 img1 = shrink(img1,mianji=240000)                     #缩小
-# img_01 = np.copy(img1)                              #备份
-show(img1, "origin image",1)
+img_00001 = np.copy(img1)                              #备份
+pixel_size = all_size/240000                          #一个像素的真实面积
+show(img_00001, "img_00001",1)
 
 
 rgb_turn_hsi_img(img1)                                #转hsi图像
+img1_CP = np.copy(img1)
 tps = get_HSI_points(img1, (40,40,40))                #提取餐托
 draw_point(img1, tps, (0,255,0))                      #画餐托
+show(img1,"hahah",1)
 g_ps, w_ps = Masaike_filter(img1,20,(0,255,0),0.2)    #马赛克化
+show(img1,"hahah",1)
 ww_ps = clean_points(img1, w_ps, biankuang)           #清除在边框的点
 p_dirt, c_dirt = best_kmean(ww_ps, 5)                 #k值聚类，大概确定每个餐盘位置
 
  
 img01 = cv2.imread('G.jpg', 0)                        #读入图像
 img02 = shrink(img01,mianji=240000)                   #图像收缩
-zhifang(img02)                                        #直方图均衡化
+# show(img02,"zhifang",1) 
+zhifang(img02)               
+# show(img02,"zhifang",1)                               #直方图均衡化
 img03 = mid_value_filter(img02, 7)                    #中值滤波
+# show(img03,"mid",1)     
 img04 = get_merge(img03, robot_filter, 50)            #提取边缘，后面数字是阈值
+# show(img04,"merge",1)  
 threshold_two(img04, 50)                              #转换二值图，后面数字也是阈值
-clean_along_points(img04, 10)
+# show(img04,"two",1)  
+clean_along_points(img04, 5)
 show(img04,"IMG04",1)
 
 
 img_part = []
+pmove = []
 for key in p_dirt.keys():                             #将图像分割成只有一个餐盘的部分，装入列表中
-    img_part.append(get_points_img(img04, p_dirt[key]))
+    img_p, pianyi = get_points_img(img04, p_dirt[key])
+    img_part.append(img_p)
+    pmove.append(pianyi)            #记录偏移量
+
 
 lll = 1
-for part in img_part:
+for part, py in zip(img_part, pmove):
     part_cp = np.copy(part)
-    show(part_cp, "part"+str(lll))
+    # show(part_cp, "part"+str(lll))
     lll +=1
     lines = Hough_line(part_cp, 50, 6)
     rect_lines = mf.check_rectangle(lines)     #备份矩形直线集
     if rect_lines:
-        for rl in rect_lines:                     #画矩形
-            for pl in rl:
-                for l in pl:
-                    delete_linepoints(part_cp, l, 255, 3)
-        show(part_cp,"part_line"+str(lll),1)
+        for rl in rect_lines:                     #画矩形'rectangle'
+            plates.append(pd.Plate('rectangle', [abs(rl[0][0].r-rl[0][1].r),abs(rl[1][0].r-rl[1][1].r)],(255,255,255)))
+            ra = abs(rl[0][0].r-rl[0][1].r)
+            rb = abs(rl[1][0].r-rl[1][1].r)
+            r_ps = get_ractangle_point(rl)
+            draw_point(part_cp,r_ps,255)
+            r_ps[:,0] +=py[0]
+            r_ps[:,1] +=py[1]
+            r_aps = get_points_around_p(img_00001, r_ps)
+            draw_point(img_00001,r_aps,(255,0,0))
+            
+            # for pl in rl:
+            #     for l in pl:
+            #         delete_linepoints(part_cp, l, 255, 3)
+        # show(part_cp,"part_line"+str(lll),1)
+        show(img_00001,"img_00001",1)
+
     else:
         oval1 = ran_hough(part,5)
+        if abs(oval1.lone_axis-oval1.short_axis)<4000:
+            r = (oval1.lone_axis**0.5 + oval1.short_axis**0.5)/2
+            plates.append(pd.Plate('round',r,(255,255,255)))
+        else:
+            plates.append(pd.Plate('oval',[oval1.lone_axis**0.5,oval1.short_axis**0.5],(255,255,255)))
         oval1.print_fomula()
-        img5 = make_image(oval1.points_on_oval())   #根据拟合出的椭圆画图
-        show(img5, "endness"+str(lll))
+        o_ps = oval1.points_on_oval()
+        o_ps[:,0] +=py[0]
+        o_ps[:,1] +=py[1]
+        o_aps = get_points_around_p(img_00001, o_ps)
+        
+        draw_point(img_00001,o_aps, (255,0,0))
+        show(img_00001, "img_00001")
 
+show(img_00001, "img_00001",0)
 
 # rgb_turn_hsi_img(img1)
 # img_h,img_s,img_i = channal_div(img1)
@@ -691,8 +759,10 @@ for part in img_part:
 # show(img_s,"imgs",0)
 # show(img_i,"imgi",0)
 
+for i in plates:
+    print(i.form_str+': '+'form:'+str(i.form)+' size:'+str(i.size)+' color:'+str(i.color))
 
 cv2.namedWindow("image")
 cv2.setMouseCallback("image", on_EVENT_LBUTTONDOWN)
-cv2.imshow("image", img02)
+cv2.imshow("image", img1_CP)
 cv2.waitKey(0)

@@ -174,9 +174,9 @@ def best_kmean(points, max_k):                #测试并加以评价得出最小
             k = i+1
             break
         form_dvalue = sse_dvalue
-    # print(d_value)
-    # print(dd_value)
-    # print(k)
+    print(d_value)
+    print(dd_value)
+    print(k)
     return k_means(points, k, draw_plot=True)
     
     
