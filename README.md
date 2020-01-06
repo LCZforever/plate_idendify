@@ -32,4 +32,4 @@
 
 第三步：用pip安装numpy，matplotlib，opencv-python这三个库(例子：命令行里输入：pip install numpy)
 
-第四步：运行main.py文件
+第四步：运行main.py文件，遇到图片不动就按一下空格
