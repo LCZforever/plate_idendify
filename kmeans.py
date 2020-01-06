@@ -123,7 +123,6 @@ def k_means(point, n, draw_plot = True):
         min_y = int(min(point[:, 1]) *1.2)
         max_y = int(max(point[:, 1]) *0.8)
         cen_dict[name] = np.array([[random.randint(min_x, max_x), random.randint(min_y, max_y)]])
-
     for i in range(100):
         if shoulian(cen_dict):
             break
@@ -168,9 +167,9 @@ def best_kmean(points, max_k):                #测试并加以评价得出最小
     k=1
     form_dvalue = d_value[0]
     for i in range(1,len(d_value)):
-        sse_dvalue = abs(d_value[i]-d_value[i-1])
+        sse_dvalue = d_value[i-1]-d_value[i]
         dd_value.append(sse_dvalue)
-        if sse_dvalue>form_dvalue*0.7:
+        if sse_dvalue>abs(form_dvalue)*0.75:
             k = i+1
             break
         form_dvalue = sse_dvalue

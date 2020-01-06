@@ -72,11 +72,17 @@ class Line2():      #采用点法式重写直线类
         self.evident += 1
         
 
-    def fun(self, x):
+    def fun(self, x):             #直线的函数
         if self.angle == 0 or self.angle == math.pi:
             return ['x', self.r/math.cos(self.angle)]
         else:
             return ['y', (self.r - x*math.cos(self.angle))/math.sin(self.angle)]
+
+    def fun_r(self, y):          #直线的反函数
+        if self.angle == math.pi/2 or self.angle == -math.pi/2:
+            return ['y', self.r/math.sin(self.angle)]
+        else:
+            return ['x', (self.r - y*math.sin(self.angle))/math.cos(self.angle)]
 
 
     def print_formula(self):
@@ -223,8 +229,66 @@ class Oval():          #自写椭圆类
                 +")(y - ("+str(self.cen[1])+"))^2 = 1")
 
 
+class Rectangle():
+    def __init__(self, sita_a, a1, a2, sita_b, b1, b2):              #基于法线式的矩形类，参数为两个垂直的角度，以及每个角度相应的两个距离
+        if abs(abs(sita_a-sita_b)%math.pi - math.pi/2)>0.1:        #不垂直不做矩形
+            self.enable = False
+            print("Can't make the rectangle")
+            print(str(sita_a)+', '+str(sita_b))
+        elif a1 == a2 or b1==b2:                                       #有重合线不做矩形
+            self.enable = False
+            print("Can't make the rectangle")
+        else:
+            self.enable =True
+            self.sita_a = sita_a                                         #储存参数信息
+            self.sita_b = sita_b
+            self.a1 = a1
+            self.a2 = a2
+            self.b1 = b1
+            self.b2 = b2
 
-def OLS(point_list):                      #输入点集，用最小二乘法的出直线，注意点集格式为 (y, x)
+            self.a = abs(a1-a2)                                          #计算边长面积属性
+            self.b = abs(b1-b2)
+            self.size = self.a*self.b
+
+            self.lines = [[Line2(a1, sita_a),Line2(a2, sita_a)],\
+                [Line2(b1, sita_b),Line2(b2, sita_b)]]                   #初始化矩形的四条直线
+                            
+            self.points = [[],[]]
+            for i in range(2):                                           #初始化矩形的四个顶点
+                for j in range(2):
+                    self.points[i].append(self.lines[0][i].cross_point(self.lines[1][j])) 
+
+    
+    def get_points(self):                           #获取矩形边的整数点集
+        points = []
+        for i in range(2):
+            for j in range(2):
+                if i==0:
+                    p1 = self.points[j][0]
+                    p2 = self.points[j][1]
+                else:
+                    p1 = self.points[0][j]
+                    p2 = self.points[1][j]
+                print("pppp"+str(p1)+' , '+str(p2))
+                if abs(p1[0]-p2[0])<abs(p1[1]-p2[1]):
+                    min_y = int(min(p1[1], p2[1]))     #确定y边界
+                    max_y = int(max(p1[1], p2[1]))
+                    for i2 in range(min_y, max_y+1):
+                        points.append([int(self.lines[i][j].fun_r(i2)[1]), i2])
+                else:
+                    min_x = int(min(p1[0], p2[0]))      #确定x边界
+                    max_x = int(max(p1[0], p2[0]))
+                    for j2 in range(min_x, max_x+1):
+                        points.append([j2, int(self.lines[i][j].fun(j2)[1])])
+        return np.array(points)
+
+
+   
+
+
+
+def OLS(point_list):                        #输入点集，用最小二乘法的出直线，注意点集格式为 (y, x)
     lengh = point_list.shape[0]
     aver_x = np.mean(point_list[:,0])
     aver_y = np.mean(point_list[:,1])
@@ -370,12 +434,12 @@ def solo_equal(a, b, c):      #解一元二次方程
        # print("x1 = " + str(x1) + ',' + 'x2 = ' + str(x2))
         return x1, x2
 
-def check_rectangle(lines, error=0.1745):        #检测直线集的直线能否围成一个矩形，erro是所能允许的误差
+def check_rectangle(lines, error=math.pi/17):        #检测直线集的直线能否围成一个矩形，erro是所能允许的误差
     nl = len(lines)
     if nl<4:                              #三条线可构不成矩形
         return False  
     para_lines = []             
-    rect_lines = []   
+    rectangles = []   
     for i in range(nl):                 #寻找平行线集，两条一对
         for j in range(i+1,nl):
             if abs(lines[i].angle-lines[j].angle)%math.pi < error:
@@ -385,13 +449,25 @@ def check_rectangle(lines, error=0.1745):        #检测直线集的直线能否
         return False
 
     for i in range(n_pl):             #在平行线集寻找垂直的关系，四条一组
-        for j in range(i+1,n_pl):     #这里没有用平均值做差，可能会使误差变大，不过我也懒得改了
-            if abs(abs(para_lines[i][0].angle-para_lines[j][0].angle)%math.pi-math.pi/2) < error:    
-                rect_lines.append([para_lines[i], para_lines[j]])
-
-    if len(rect_lines):
-        return rect_lines
+        for j in range(i+1,n_pl): 
+            d_angle = abs(para_lines[i][0].angle-para_lines[j][0].angle)
+            if abs(d_angle % math.pi - math.pi/2) < error:    
+                rectangle = exact_rectangle([para_lines[i], para_lines[j]])
+                rectangles.append(rectangle)
+    if len(rectangles):
+        return rectangles
     else:
         return False
 
-
+def exact_rectangle(rect_lines):          #根据可以拟合成矩形的直线确定一个严格的矩形
+    sita_a = (rect_lines[0][0].angle + rect_lines[0][1].angle)/2
+    sita_b = (rect_lines[1][0].angle + rect_lines[1][1].angle)/2
+    if abs(sita_a - sita_b) < math.pi:
+        sita_a =max(sita_a,sita_b)
+        sita_b = sita_a - math.pi/2
+    else:
+        sita_a = max(sita_a, sita_b)
+        sita_b = (sita_a +math.pi/2)%math.pi-math.pi
+    rectangle = Rectangle(sita_a, rect_lines[0][0].r,rect_lines[0][1].r,\
+        sita_b, rect_lines[1][0].r,rect_lines[1][1].r)
+    return rectangle

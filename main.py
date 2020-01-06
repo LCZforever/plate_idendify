@@ -517,10 +517,10 @@ def get_points_img(img, points):          #得到点集覆盖的图中周围区�
 
     return cut_image(img, p_lu, p_rd),[x_l-30, y_u-30]
 
-def get_points_around_p(img, points):
-    pps = get_points_around(img, points[0],3)
+def get_points_around_p(img, points,size=3):
+    pps = get_points_around(img, points[0],size)
     for i in range(1,points.shape[0]):
-        p = get_points_around(img, points[i],3)
+        p = get_points_around(img, points[i],size)
         if p.shape[0]!=0 :
             if pps.shape[0]==0:
                  pps = p
@@ -529,25 +529,6 @@ def get_points_around_p(img, points):
             except BaseException:
                 print("warming"+str(p)+' and '+str(pps))
     return pps
-
-def get_ractangle_point(rect):          #获取矩形边框整数点集
-    if not rect:
-        return None
-    points = []
-    for i in range(2):
-        for j in range(2):
-            cross_p1 = rect[i][j].cross_point(rect[(i+1)%2][0])
-            cross_p2 = rect[i][j].cross_point(rect[(i+1)%2][1])
-            if cross_p1[0]==cross_p2[0]:
-                for t in range(int(min(cross_p1[1],cross_p2[1])),int(max(cross_p1[1],cross_p2[1]))+1):
-                    points.append([int(cross_p1[0]), t])
-            else:
-                for t in range(int(min(cross_p1[0],cross_p2[0])),int(max(cross_p1[0],cross_p2[0]))+1):
-                    points.append([t, int(rect[i][j].fun(t)[1])])
-
-    return np.array(points)
-
-
 
 #######################绘图与展示函数########################
 def delete_linepoints(img, line, gray=0, size=8):      #在图上绘制直线，默认为删除图中直线上的非零点
@@ -680,7 +661,7 @@ img1_CP = np.copy(img1)
 tps = get_HSI_points(img1, (40,40,40))                #提取餐托
 draw_point(img1, tps, (0,255,0))                      #画餐托
 show(img1,"hahah",1)
-g_ps, w_ps = Masaike_filter(img1,20,(0,255,0),0.2)    #马赛克化
+g_ps, w_ps = Masaike_filter(img1,20,(0,255,0),0.18)    #马赛克化
 show(img1,"hahah",1)
 ww_ps = clean_points(img1, w_ps, biankuang)           #清除在边框的点
 p_dirt, c_dirt = best_kmean(ww_ps, 5)                 #k值聚类，大概确定每个餐盘位置
@@ -693,13 +674,12 @@ zhifang(img02)
 # show(img02,"zhifang",1)                               #直方图均衡化
 img03 = mid_value_filter(img02, 7)                    #中值滤波
 # show(img03,"mid",1)     
-img04 = get_merge(img03, robot_filter, 50)            #提取边缘，后面数字是阈值
+img04 = get_merge(img03, robot_filter, 60)            #提取边缘，后面数字是阈值
 # show(img04,"merge",1)  
 threshold_two(img04, 50)                              #转换二值图，后面数字也是阈值
 # show(img04,"two",1)  
 clean_along_points(img04, 5)
 show(img04,"IMG04",1)
-
 
 img_part = []
 pmove = []
@@ -708,32 +688,22 @@ for key in p_dirt.keys():                             #将图像分割成只有�
     img_part.append(img_p)
     pmove.append(pianyi)            #记录偏移量
 
-
 lll = 1
 for part, py in zip(img_part, pmove):
     part_cp = np.copy(part)
     # show(part_cp, "part"+str(lll))
     lll +=1
-    lines = Hough_line(part_cp, 50, 6)
-    rect_lines = mf.check_rectangle(lines)     #备份矩形直线集
-    if rect_lines:
-        for rl in rect_lines:                     #画矩形'rectangle'
-            plates.append(pd.Plate('rectangle', [abs(rl[0][0].r-rl[0][1].r),abs(rl[1][0].r-rl[1][1].r)],(255,255,255)))
-            ra = abs(rl[0][0].r-rl[0][1].r)
-            rb = abs(rl[1][0].r-rl[1][1].r)
-            r_ps = get_ractangle_point(rl)
-            draw_point(part_cp,r_ps,255)
-            r_ps[:,0] +=py[0]
+    lines = Hough_line(part_cp, 55, 4)
+    rectangles = mf.check_rectangle(lines)     #备份矩形直线集
+    if rectangles:
+        for rl in rectangles:                     #画矩形'rectangle' 
+            plates.append(pd.Plate('rectangle', [rl.a,rl.b],(255,255,255)))
+            r_ps = rl.get_points()
+            r_ps[:,0] +=py[0]              #加回偏移量
             r_ps[:,1] +=py[1]
             r_aps = get_points_around_p(img_00001, r_ps)
             draw_point(img_00001,r_aps,(255,0,0))
-            
-            # for pl in rl:
-            #     for l in pl:
-            #         delete_linepoints(part_cp, l, 255, 3)
-        # show(part_cp,"part_line"+str(lll),1)
         show(img_00001,"img_00001",1)
-
     else:
         oval1 = ran_hough(part,5)
         if abs(oval1.lone_axis-oval1.short_axis)<4000:
@@ -743,21 +713,12 @@ for part, py in zip(img_part, pmove):
             plates.append(pd.Plate('oval',[oval1.lone_axis**0.5,oval1.short_axis**0.5],(255,255,255)))
         oval1.print_fomula()
         o_ps = oval1.points_on_oval()
-        o_ps[:,0] +=py[0]
+        o_ps[:,0] +=py[0]                              #加回偏移量
         o_ps[:,1] +=py[1]
         o_aps = get_points_around_p(img_00001, o_ps)
         
         draw_point(img_00001,o_aps, (255,0,0))
         show(img_00001, "img_00001")
-
-show(img_00001, "img_00001",0)
-
-# rgb_turn_hsi_img(img1)
-# img_h,img_s,img_i = channal_div(img1)
-# show(img1,"img2",0)
-# show(img_h,"imgh",0)
-# show(img_s,"imgs",0)
-# show(img_i,"imgi",0)
 
 for i in plates:
     print(i.form_str+': '+'form:'+str(i.form)+' size:'+str(i.size)+' color:'+str(i.color))

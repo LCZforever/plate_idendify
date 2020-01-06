@@ -20,3 +20,16 @@
 3，识别轮廓（采用经典的形状识别算法——随机霍夫变换）
 
 最后得出每个区域里图形的形状，这里把形状的解析式都解出来了，故还能算一遍大小
+
+
+运行环境：python 所需库：numpy，matplotlib，opencv-python
+
+其中numpy是矩阵运算库（主要），matplotlib是重定向图表用的，opencv则只是读入和展示图像
+
+第一步：安装python
+
+第二步：安装pip 教程 https://blog.csdn.net/u010916338/article/details/81104554
+
+第三步：用pip安装numpy，matplotlib，opencv-python这三个库(例子：命令行里输入：pip install numpy)
+
+第四步：运行main.py文件
